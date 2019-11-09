@@ -55,7 +55,24 @@ def change_svn_url(url, **kwargs):
     return unsplit_svn_url(liz)
 
 
+# --------------------------------------------- [ value checkers ... [
 def repo_value(url):
+    """
+    check the value for the repo option of the change_svn_url function
+
+    >>> repo_value('^')
+    '^'
+
+    Currently, for URLs, query strings and fragments are removed:
+    >>> repo_value('svn+ssh://my.srv/repo1?query#fragment')
+    'svn+ssh://my.srv/repo1'
+
+    Non-URLs (other than '^') yield value errors:
+    >>> repo_value('other')
+    Traceback (most recent call last):
+    ...
+    ValueError: URL 'other' doesn't contain a scheme nor a hostname
+    """
     if url == '^':
         return url
     tup = urlsplit(url)
@@ -147,9 +164,18 @@ def peg_value(peg):
                 % locals())
     else:
         return val
+# --------------------------------------------- ] ... value checkers ]
 
 
+# ------------------------------------------ [ named tuple class ... [
 svn_url_parts = 'repo prefix project branch suffix peg'.split()
+
+SplitSubversionURL = namedtuple(
+    'SplitSubversionURL',
+    svn_url_parts)
+# ------------------------------------------ ] ... named tuple class ]
+
+
 url_part_index = dict(zip(svn_url_parts,
                           range(len(svn_url_parts))
                           ))
@@ -162,9 +188,7 @@ url_part_checkers = {
         'peg':     peg_value,
         }
 
-SplitSubversionURL = namedtuple(
-    'SplitSubversionURL',
-    svn_url_parts)
+
 def split_svn_url(url, **kwargs):
     """
     Split a Subversion URL in six parts:
@@ -349,6 +373,7 @@ def split_svn_url(url, **kwargs):
     return SplitSubversionURL(repo, prefix,
             project, branch, suffix,
             peg)
+
 
 def unsplit_svn_url(tup):
     """
