@@ -1,6 +1,22 @@
 # -*- coding: utf-8 -*- äöü vim: ts=8 sts=4 sw=4 si et tw=79
 """
 thebops.svnurls: Split / unsplit Subversion URLs
+
+Supports the Subversion standard layout::
+
+    ^/
+     ...
+     |- my.project
+     |  |- trunk
+     |  |- branches
+     |  |  |- feature1
+     |  |  `- v1_0
+     |  `- tags
+     |     `- v1.0
+     :
+
+Tags and branches in Subversion are technically ordinary copies.
+This module supports tagging and branching by extracting the "branch part".
 """
 from collections import namedtuple
 from sys import version_info
@@ -14,12 +30,29 @@ def _(s, *args, **kwargs):
     return s
 
 __all__ = [
+        'change_svn_url',      # return changed svn URL
         'split_svn_url',       # the urlsplit function
         'unsplit_svn_url',     # the corresponding urlunsplit
         'SplitSubversionURL',  # the namedtuple class
         ]
 
 forbidden_chars = set('<>|@?*')
+
+
+def change_svn_url(url, **kwargs):
+    """
+    >>> url1 = 'svn+ssh://svn.mycompany/repo1/my.project/trunk/setup.py'
+    >>> change_svn_url(url1, project='other.project/')
+    'svn+ssh://svn.mycompany/repo1/other.project/trunk/setup.py'
+    >>> change_svn_url(url1, branch='branches/feature1')
+    'svn+ssh://svn.mycompany/repo1/my.project/branches/feature1/setup.py'
+    """
+    split_kwargs = kwargs.pop('split_kwargs', {})
+    liz = list(split_svn_url(url, **split_kwargs))
+    for key, val in kwargs.items():
+        i = url_part_index[key]
+        liz[i] = url_part_checkers[key](val)
+    return unsplit_svn_url(liz)
 
 
 def repo_value(url):
@@ -107,10 +140,10 @@ def peg_value(peg):
     try:
         val = int(peg)
         if val <= 0:
-            raise ValueError('peg revision needs to be >= 1 (%(val)s)'
+            raise ValueError('peg revision needs to be >= 1 (%(val)r)'
                     % locals())
     except ValueError:
-        raise ValueError('peg revision must be a number >= 1 (%(peg)s)'
+        raise ValueError('peg revision must be a number >= 1 (%(peg)r)'
                 % locals())
     else:
         return val
@@ -176,8 +209,14 @@ def split_svn_url(url, **kwargs):
     >>> SplitSubversionURL(*aslist)
     SplitSubversionURL(repo='^', prefix='/', project='my.project', branch='trunk', suffix='setup.py', peg=None)
 
+    For brevity, here is a little helper function for doctest-internal use:
+
     >>> def ssu_list(s, *args, **kwargs):
     ...     return list(split_svn_url(s, *args, **kwargs))
+
+    However, you'll usually simply use the change_svn_url function which wraps
+    the splitting and unsplitting part and checks the arguments for reasonable
+    values.
 
     As this is a simple parsing function, it won't ask Subversion to
     tell about the repository base URL in such cases.
@@ -328,22 +367,6 @@ def unsplit_svn_url(tup):
     if peg:
         res.extend(['@', str(peg)])
     return ''.join(res)
-
-
-def change_svn_url(url, **kwargs):
-    """
-    >>> url1 = 'svn+ssh://svn.mycompany/repo1/my.project/trunk/setup.py'
-    >>> change_svn_url(url1, project='other.project/')
-    'svn+ssh://svn.mycompany/repo1/other.project/trunk/setup.py'
-    >>> change_svn_url(url1, branch='branches/feature1')
-    'svn+ssh://svn.mycompany/repo1/my.project/branches/feature1/setup.py'
-    """
-    split_kwargs = kwargs.pop('split_kwargs', {})
-    liz = list(split_svn_url(url, **split_kwargs))
-    for key, val in kwargs.items():
-        i = url_part_index[key]
-        liz[i] = url_part_checkers[key](val)
-    return unsplit_svn_url(liz)
 
 
 if __name__ == '__main__':
