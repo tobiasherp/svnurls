@@ -3,15 +3,24 @@
 thebops.svnurls: Split / unsplit Subversion URLs
 """
 from collections import namedtuple
-from urlparse import urlsplit, urlunsplit
+from sys import version_info
+if version_info[:2] >= (3, 0):
+    from urllib.parse import urlsplit, urlunsplit
+else:
+    from urlparse import urlsplit, urlunsplit
 from os import sep, altsep
 from os.path import normpath
-from itertools import izip
 def _(s, *args, **kwargs):
     return s
 
+__all__ = [
+        'split_svn_url',       # the urlsplit function
+        'unsplit_svn_url',     # the corresponding urlunsplit
+        'SplitSubversionURL',  # the namedtuple class
+        ]
 
 forbidden_chars = set('<>|@?*')
+
 
 def repo_value(url):
     if url == '^':
@@ -108,9 +117,9 @@ def peg_value(peg):
 
 
 svn_url_parts = 'repo prefix project branch suffix peg'.split()
-url_part_index = dict(izip(svn_url_parts,
-                           range(len(svn_url_parts))
-                           ))
+url_part_index = dict(zip(svn_url_parts,
+                          range(len(svn_url_parts))
+                          ))
 url_part_checkers = {
         'repo':    repo_value,
         'prefix':  prefix_value,
@@ -322,6 +331,13 @@ def unsplit_svn_url(tup):
 
 
 def change_svn_url(url, **kwargs):
+    """
+    >>> url1 = 'svn+ssh://svn.mycompany/repo1/my.project/trunk/setup.py'
+    >>> change_svn_url(url1, project='other.project/')
+    'svn+ssh://svn.mycompany/repo1/other.project/trunk/setup.py'
+    >>> change_svn_url(url1, branch='branches/feature1')
+    'svn+ssh://svn.mycompany/repo1/my.project/branches/feature1/setup.py'
+    """
     split_kwargs = kwargs.pop('split_kwargs', {})
     liz = list(split_svn_url(url, **split_kwargs))
     for key, val in kwargs.items():
