@@ -109,6 +109,7 @@ Scripts/
 pip-selfcheck.json
 tcl/
 bin/
+.project
 
 # Vim artefacts
 *~
