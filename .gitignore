@@ -102,3 +102,14 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# Virtualenv
+Include/
+Scripts/
+pip-selfcheck.json
+tcl/
+bin/
+
+# Vim artefacts
+*~
+.*.swp
