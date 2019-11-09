@@ -85,11 +85,16 @@ def repo_value(url):
 
 def prefix_value(s):
     """
-    beginnt und endet mit einem '/'
+    The "prefix" starts and ends with a slash
+
+    >>> prefix_value('/')
+    '/'
+    >>> prefix_value('some/prefix')
+    '/some/prefix/'
     """
     forbidden = forbidden_chars.intersection(s)
     if forbidden:
-        return ValueError('%(s)s contains forbidden characters'
+        raise ValueError('%(s)s contains forbidden characters'
                 ' (%(forbidden)s)'
                 % locals())
     stripped = s.strip('/')
@@ -99,9 +104,31 @@ def prefix_value(s):
 
 
 def dotted_name(s):
+    """
+    A "dotted name" is used for tags and branches.
+    >>> dotted_name('v1.0')
+    'v1.0'
+
+    There is no replacement whatsoever:
+    >>> dotted_name('v1_0')
+    'v1_0'
+
+    The name of a tag or branch can't contain a slash;
+    the slash would terminate the "branch part":
+    >>> dotted_name('one/two')
+    Traceback (most recent call last):
+    ...
+    ValueError: dotted name 'one/two' must not contain slashes
+
+    However, a trailing slash might result from tab expansion
+    (e.g. when specifying a project), so it is removed:
+    >>> dotted_name('my.project/')
+    'my.project'
+
+    """
     forbidden = forbidden_chars.intersection(s)
     if forbidden:
-        return ValueError('%(s)s contains forbidden characters'
+        raise ValueError('%(s)s contains forbidden characters'
                 ' (%(forbidden)s)'
                 % locals())
     if not s:
@@ -109,7 +136,7 @@ def dotted_name(s):
     # might result from tab completion:
     stripped = s.rstrip('/')
     if '/' in stripped:
-        return ValueError('dotted name %(stripped)r'
+        raise ValueError('dotted name %(stripped)r'
                 ' must not contain slashes'
                 % locals())
     chunks = stripped.split('.')
@@ -117,7 +144,7 @@ def dotted_name(s):
         for chunk in chunks
         if not chunk
         ]:
-        return ValueError('badly dotted name: %(stripped)r'
+        raise ValueError('badly dotted name: %(stripped)r'
                 % locals())
     return stripped
 
@@ -142,7 +169,7 @@ def url_subpath(s):
     """
     forbidden = forbidden_chars.intersection(s)
     if forbidden:
-        return ValueError('%(s)s contains forbidden characters'
+        raise ValueError('%(s)s contains forbidden characters'
                 ' (%(forbidden)s)'
                 % locals())
     stripped = normpath(s).lstrip(sep)
