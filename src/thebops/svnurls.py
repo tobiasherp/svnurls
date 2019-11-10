@@ -150,8 +150,38 @@ def dotted_name(s):
 
 
 def branch_value(s):
+    """
+    Check the value for the 4th part (index: 3) of the split url, the "branch
+    part", which can take the trunk or a tag as well
+
+    >>> branch_value('trunk')
+    'trunk'
+    >>> branch_value('branches/v1_0')
+    'branches/v1_0'
+    >>> branch_value('tags/v1.0')
+    'tags/v1.0'
+
+    You might want to list the tags or branches:
+    >>> branch_value('branches')
+    'branches'
+    >>> branch_value('tags')
+    'tags'
+
+    The value is allowed to be empty:
+    >>> branch_value('')
+    ''
+
+    However, there is no default whatsoever concerning the 'branches/' or
+    'tags/' prefix:
+    >>> branch_value('somename')
+    Traceback (most recent call last):
+    ...
+    ValueError: 'somename': tags/... or branches/... expected
+    """
     if s == 'trunk':
         return s
+    elif not s:
+        return ''
     liz = s.split('/', 1)
     if liz[0] not in ('tags', 'branches'):
         raise ValueError('%(s)r: tags/... or branches/... expected'
