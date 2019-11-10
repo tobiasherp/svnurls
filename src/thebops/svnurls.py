@@ -101,19 +101,32 @@ def change_svn_url(url, **kwargs):
     Traceback (most recent call last):
     ...
     TypeError: Both branch and trunk target index 3
+
+    However, if only one of those arguments yields a "true" value,
+    there is no problem:
+    >>> change_svn_url(url2, branch='v2_0', trunk=0, tags=None, branches='')
+    'svn+ssh://svn.mycompany/repo1/my.project/branches/v2_0/'
+    >>> change_svn_url(url2, branch='', trunk=0, tags=None, branches='')
+    'svn+ssh://svn.mycompany/repo1/my.project/'
     """
     split_kwargs = kwargs.pop('split_kwargs', {})
     liz = list(split_svn_url(url, **split_kwargs))
-    used_kwargs = {}
+    new_value = {}
+    blocked_kwargs = {}
     for key, val in kwargs.items():
         i = url_part_index[key]
-        if i in used_kwargs:
-            keys = ' and '.join(sorted([key, used_kwargs[i]]))
-            raise TypeError('Both %(keys)s target index %(i)d'
-                    % locals())
-        else:
-            used_kwargs[i] = key
-        liz[i] = url_part_checkers[key](val)
+        new = url_part_checkers[key](val)
+        if new:
+            if i in blocked_kwargs:
+                keys = ' and '.join(sorted([key, blocked_kwargs[i]]))
+                raise TypeError('Both %(keys)s target index %(i)d'
+                        % locals())
+            blocked_kwargs[i] = key
+            new_value[i] = new
+        elif i not in new_value:
+            new_value[i] = new
+    for i, new in new_value.items():
+        liz[i] = new
     return unsplit_svn_url(liz)
 
 
@@ -355,6 +368,17 @@ def autoprefix(prefix):
 
 
 def switched_const(const):
+    """
+    >>> checker = switched_const('trunk')
+    >>> checker(0)
+    ''
+    >>> checker('')
+    ''
+    >>> checker(1)
+    'trunk'
+    >>> checker('trunk/')
+    'trunk'
+    """
     msg = '%%(s)r: expected %(const)r or a boolean value' % locals()
     def checker(val):
         if not val:
