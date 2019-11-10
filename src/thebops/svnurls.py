@@ -322,6 +322,10 @@ def autoprefix(prefix):
     Traceback (most recent call last):
     ...
     ValueError: dotted name 'branches/v1_0' must not contain slashes
+    >>> checker('tags/')
+    Traceback (most recent call last):
+    ...
+    ValueError: 'tags/': expected some name after 'tags/'!
     """
     pl = len(prefix)
     msg = '%%(s)r: expected some name after %(prefix)r!' % locals()
