@@ -25,7 +25,7 @@ if version_info[:2] >= (3, 0):
 else:
     from urlparse import urlsplit, urlunsplit
 from os import sep, altsep
-from os.path import normpath
+from os.path import normpath, curdir
 def _(s, *args, **kwargs):
     return s
 
@@ -37,15 +37,66 @@ __all__ = [
         ]
 
 forbidden_chars = set('<>|@?*')
+reserved_names = 'trunk branches tags'.split()
 
 
 def change_svn_url(url, **kwargs):
     """
+    Changes the given URL according to the keyword arguments;
+    the allowed arguments resemble the keys of the namedtuple class,
+    with one exception:
+    The 'branch' keyword argument takes a branch only;
+    to replace the 'branch part' (which can contain the trunk or a tag as well)
+    in a universal way, use the 'branch_part' argument.
+
     >>> url1 = 'svn+ssh://svn.mycompany/repo1/my.project/trunk/setup.py'
-    >>> change_svn_url(url1, project='other.project/')
-    'svn+ssh://svn.mycompany/repo1/other.project/trunk/setup.py'
+
+    Switch to another branch:
+    >>> change_svn_url(url1, branch_part='branches/feature1')
+    'svn+ssh://svn.mycompany/repo1/my.project/branches/feature1/setup.py'
+    >>> change_svn_url(url1, branch='feature1')
+    'svn+ssh://svn.mycompany/repo1/my.project/branches/feature1/setup.py'
     >>> change_svn_url(url1, branch='branches/feature1')
     'svn+ssh://svn.mycompany/repo1/my.project/branches/feature1/setup.py'
+
+    Switch to the trunk:
+    >>> change_svn_url(url1, branch_part='trunk')
+    'svn+ssh://svn.mycompany/repo1/my.project/trunk/setup.py'
+    >>> change_svn_url(url1, trunk='trunk')
+    'svn+ssh://svn.mycompany/repo1/my.project/trunk/setup.py'
+    >>> change_svn_url(url1, trunk=True)
+    'svn+ssh://svn.mycompany/repo1/my.project/trunk/setup.py'
+
+    Switch to a tag:
+    >>> change_svn_url(url1, branch_part='tags/v1.0')
+    'svn+ssh://svn.mycompany/repo1/my.project/tags/v1.0/setup.py'
+    >>> change_svn_url(url1, tag='v1.0')
+    'svn+ssh://svn.mycompany/repo1/my.project/tags/v1.0/setup.py'
+    >>> change_svn_url(url1, tag='tags/v1.0')
+    'svn+ssh://svn.mycompany/repo1/my.project/tags/v1.0/setup.py'
+
+    The branch_part option can be used for bare 'branches' and 'tags' urls:
+    >>> url2 = change_svn_url(url1, suffix='')
+    >>> url2
+    'svn+ssh://svn.mycompany/repo1/my.project/trunk/'
+
+    >>> change_svn_url(url2, branch_part='branches')
+    'svn+ssh://svn.mycompany/repo1/my.project/branches/'
+    >>> change_svn_url(url2, branch_part='tags')
+    'svn+ssh://svn.mycompany/repo1/my.project/tags/'
+
+    >>> change_svn_url(url2, branches=1)
+    'svn+ssh://svn.mycompany/repo1/my.project/branches/'
+    >>> change_svn_url(url2, branches='branches')
+    'svn+ssh://svn.mycompany/repo1/my.project/branches/'
+    >>> change_svn_url(url2, tags=True)
+    'svn+ssh://svn.mycompany/repo1/my.project/tags/'
+    >>> change_svn_url(url2, tags='tags')
+    'svn+ssh://svn.mycompany/repo1/my.project/tags/'
+
+    Wrong values yield ValueErrors.
+
+    The branch_part option doesn't know
     """
     split_kwargs = kwargs.pop('split_kwargs', {})
     liz = list(split_svn_url(url, **split_kwargs))
@@ -133,6 +184,9 @@ def dotted_name(s):
                 % locals())
     if not s:
         return ''
+    elif s in reserved_names:
+        raise ValueError('The name %(s)r is reserved!'
+                % locals())
     # might result from tab completion:
     stripped = s.rstrip('/')
     if '/' in stripped:
@@ -149,31 +203,31 @@ def dotted_name(s):
     return stripped
 
 
-def branch_value(s):
+def branch_part(s):
     """
     Check the value for the 4th part (index: 3) of the split url, the "branch
     part", which can take the trunk or a tag as well
 
-    >>> branch_value('trunk')
+    >>> branch_part('trunk')
     'trunk'
-    >>> branch_value('branches/v1_0')
+    >>> branch_part('branches/v1_0')
     'branches/v1_0'
-    >>> branch_value('tags/v1.0')
+    >>> branch_part('tags/v1.0')
     'tags/v1.0'
 
     You might want to list the tags or branches:
-    >>> branch_value('branches')
+    >>> branch_part('branches')
     'branches'
-    >>> branch_value('tags')
+    >>> branch_part('tags')
     'tags'
 
     The value is allowed to be empty:
-    >>> branch_value('')
+    >>> branch_part('')
     ''
 
     However, there is no default whatsoever concerning the 'branches/' or
     'tags/' prefix:
-    >>> branch_value('somename')
+    >>> branch_part('somename')
     Traceback (most recent call last):
     ...
     ValueError: 'somename': tags/... or branches/... expected
@@ -215,6 +269,8 @@ def url_subpath(s):
                 ' (%(forbidden)r)'
                 % locals())
     stripped = normpath(s).lstrip(sep)
+    if stripped == curdir:
+        return ''
     if sep != '/':
         return stripped.replace(sep, '/')
     return stripped
@@ -250,6 +306,54 @@ def peg_value(peg):
             raise ValueError('peg revision needs to be >= 1 (%(val)r)'
                     % locals())
         return val
+
+
+# ------------------------------------- [ checker factories ... [
+def autoprefix(prefix):
+    """
+    >>> checker = autoprefix('tags/')
+    >>> checker('tags/v1.0')
+    'tags/v1.0'
+    >>> checker('v1.0')
+    'tags/v1.0'
+    >>> checker('')
+    ''
+    >>> checker('branches/v1_0')
+    Traceback (most recent call last):
+    ...
+    ValueError: dotted name 'branches/v1_0' must not contain slashes
+    """
+    pl = len(prefix)
+    msg = '%%(s)r: expected some name after %(prefix)r!' % locals()
+    def checker(s):
+        if s.startswith(prefix):
+            tail = s[pl:]
+            if tail:
+                return prefix + dotted_name(tail)
+            else:
+                raise ValueError(msg % locals())
+        elif s:
+            return prefix + dotted_name(s)
+        else:
+            return ''
+    return checker
+
+
+def switched_const(const):
+    msg = '%%(s)r: expected %(const)r or a boolean value' % locals()
+    def checker(val):
+        if not val:
+            return ''
+        if val in (1, True, const):
+            return const
+        # tolerate values from tab expansion:
+        if val[-1] in (sep, altsep):
+            val = val[:-1]
+        if val == const:
+            return const
+        raise ValueError(msg % locals())
+    return checker
+# ------------------------------------- ] ... checker factories ]
 # --------------------------------------------- ] ... value checkers ]
 
 
@@ -265,13 +369,25 @@ SplitSubversionURL = namedtuple(
 url_part_index = dict(zip(svn_url_parts,
                           range(len(svn_url_parts))
                           ))
+url_part_index.update({
+    'branch_part': 3,
+    'tag':         3,
+    'trunk':       3,
+    'branches':    3,
+    'tags':        3,
+    })
 url_part_checkers = {
-        'repo':    repo_value,
-        'prefix':  prefix_value,
-        'project': dotted_name,
-        'branch':  branch_value,
-        'suffix':  url_subpath,
-        'peg':     peg_value,
+        'repo':        repo_value,
+        'prefix':      prefix_value,
+        'project':     dotted_name,
+        'branch_part': branch_part,
+        'suffix':      url_subpath,
+        'peg':         peg_value,
+        'branch':      autoprefix('branches/'),
+        'branches':    switched_const('branches'),
+        'trunk':       switched_const('trunk'),
+        'tag':         autoprefix('tags/'),
+        'tags':        switched_const('tags'),
         }
 
 
