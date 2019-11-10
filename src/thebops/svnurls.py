@@ -96,12 +96,23 @@ def change_svn_url(url, **kwargs):
 
     Wrong values yield ValueErrors.
 
-    The branch_part option doesn't know
+    If conflicting keyword args are used, a TypeError occurs:
+    >>> change_svn_url(url2, branch='v1_0', trunk=1)
+    Traceback (most recent call last):
+    ...
+    TypeError: Both branch and trunk target index 3
     """
     split_kwargs = kwargs.pop('split_kwargs', {})
     liz = list(split_svn_url(url, **split_kwargs))
+    used_kwargs = {}
     for key, val in kwargs.items():
         i = url_part_index[key]
+        if i in used_kwargs:
+            keys = ' and '.join(sorted([key, used_kwargs[i]]))
+            raise TypeError('Both %(keys)s target index %(i)d'
+                    % locals())
+        else:
+            used_kwargs[i] = key
         liz[i] = url_part_checkers[key](val)
     return unsplit_svn_url(liz)
 
