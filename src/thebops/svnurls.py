@@ -195,12 +195,24 @@ def branch_value(s):
 
 def url_subpath(s):
     """
-    darf mit '/' enden, aber nicht beginnen
+    A "subpath" may end but not start with a slash;
+    it resembles a relative filesystem path
+
+    >>> url_subpath('one/../two/./three/')
+    'two/three'
+
+    Characters which you won't reasonably use for filesystem names
+    (and may be forbidden by your filesystem anyway) cause a ValueError:
+    >>> url_subpath('one>two')
+    Traceback (most recent call last):
+    ...
+    ValueError: 'one>two' contains forbidden characters ('>')
     """
     forbidden = forbidden_chars.intersection(s)
     if forbidden:
-        raise ValueError('%(s)s contains forbidden characters'
-                ' (%(forbidden)s)'
+        forbidden = ''.join(sorted(forbidden))
+        raise ValueError('%(s)r contains forbidden characters'
+                ' (%(forbidden)r)'
                 % locals())
     stripped = normpath(s).lstrip(sep)
     if sep != '/':
@@ -209,17 +221,34 @@ def url_subpath(s):
 
 
 def peg_value(peg):
+    """
+    PEG revisions are natural numbers
+
+    >>> peg_value('42')
+    42
+    >>> peg_value('')
+    >>> peg_value(1)
+    1
+    >>> peg_value(0)
+    Traceback (most recent call last):
+    ...
+    ValueError: peg revision needs to be >= 1 (0)
+    >>> peg_value('PREV')
+    Traceback (most recent call last):
+    ...
+    ValueError: peg revision must be a number >= 1 ('PREV')
+    """
     if peg in (None, ''):
         return None
     try:
         val = int(peg)
-        if val <= 0:
-            raise ValueError('peg revision needs to be >= 1 (%(val)r)'
-                    % locals())
     except ValueError:
         raise ValueError('peg revision must be a number >= 1 (%(peg)r)'
                 % locals())
     else:
+        if val <= 0:
+            raise ValueError('peg revision needs to be >= 1 (%(val)r)'
+                    % locals())
         return val
 # --------------------------------------------- ] ... value checkers ]
 
