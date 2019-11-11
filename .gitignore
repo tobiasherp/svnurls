@@ -106,9 +106,11 @@ venv.bak/
 # Virtualenv
 Include/
 Scripts/
+include/
 pip-selfcheck.json
 tcl/
 bin/
+lib64
 .project
 
 # Vim artefacts
