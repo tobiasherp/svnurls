@@ -66,6 +66,13 @@ VERSION = read_version('VERSION',
                        'VERSION_SUFFIX')
 # -------------------------------------------- ] ... get the version ]
 
+long_description = '\n\n\n'.join([
+    open(fn).read().strip()
+    for fn in [
+        'README.rst',
+        'CONTRIBUTORS.rst',
+        'CHANGES.rst',
+        ]])
 # from pprint import pprint
 if 0:\
 pprint({'sys.argv': argv,
@@ -76,7 +83,7 @@ setup(name='svnurls'
     , author='Tobias Herp'
     , author_email='tobias.herp@gmx.de'
     , description="Split and unsplit Subversion URLs"
-    , long_description=read('README.rst')
+    , long_description=long_description
     , long_description_content_type='text/x-rst'
     , project_urls={
         'Documentation': 'https://pypi.org/project/svnurls',
