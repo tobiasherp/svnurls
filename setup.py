@@ -1,10 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*- vim: ts=8 sts=4 sw=4 si et tw=79
-from ez_setup import use_setuptools
-use_setuptools()
-
 from setuptools import setup, find_packages
-from os.path import dirname, abspath, join, sep
+from os.path import dirname, abspath, join, sep, isfile
 
 def read(name):
     fn = join(dirname(abspath(__file__)), name)
