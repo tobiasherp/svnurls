@@ -30,6 +30,12 @@ setup(name='svnurls'
     , author_email='tobias.herp@gmx.de'
     , description="Split and unsplit Subversion URLs"
     , long_description=read('README.rst')
+    , long_description_content_type='text/x-rst'
+    , project_urls={
+        'Documentation': 'https://pypi.org/project/svnurls',
+        'Source':  'https://github.com/tobiasherp/svnurls',
+        'Tracker': 'https://github.com/tobiasherp/svnurls/issues',
+        }
     , version=__version__
     , package_dir={'':'src'}
     , packages=find_packages('src')
