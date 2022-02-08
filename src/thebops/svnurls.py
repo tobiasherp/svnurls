@@ -458,21 +458,44 @@ def split_svn_url(url, **kwargs):
                     Default is True, because of svn's output conventions.
 
     >>> split_svn_url('svn+ssh://svn.mycompany/my.project/trunk/setup.py')
-    SplitSubversionURL(repo='svn+ssh://svn.mycompany', prefix='/', project='my.project', branch='trunk', suffix='setup.py', peg=None)
+    ...                                 # doctest: +NORMALIZE_WHITESPACE
+    SplitSubversionURL(repo='svn+ssh://svn.mycompany',
+                       prefix='/',
+                       project='my.project',
+                       branch='trunk',
+                       suffix='setup.py',
+                       peg=None)
 
     A repository-internal specification can be parsed as well:
     >>> split_svn_url('^/my.project/trunk/setup.py@123')
-    SplitSubversionURL(repo='^', prefix='/', project='my.project', branch='trunk', suffix='setup.py', peg=123)
+    ...                                 # doctest: +NORMALIZE_WHITESPACE
+    SplitSubversionURL(repo='^',
+                       prefix='/',
+                       project='my.project',
+                       branch='trunk',
+                       suffix='setup.py',
+                       peg=123)
 
     >>> split_svn_url('^/my.project/tags/v1.0/setup.py')
-    SplitSubversionURL(repo='^', prefix='/', project='my.project', branch='tags/v1.0', suffix='setup.py', peg=None)
+    ...                                 # doctest: +NORMALIZE_WHITESPACE
+    SplitSubversionURL(repo='^',
+                       prefix='/',
+                       project='my.project',
+                       branch='tags/v1.0',
+                       suffix='setup.py',
+                       peg=None)
 
     For URL manipulation, we convert the named tuple to a list:
     >>> aslist = list(split_svn_url('^/my.project/trunk/setup.py'))
     >>> aslist
     ['^', '/', 'my.project', 'trunk', 'setup.py', None]
-    >>> SplitSubversionURL(*aslist)
-    SplitSubversionURL(repo='^', prefix='/', project='my.project', branch='trunk', suffix='setup.py', peg=None)
+    >>> SplitSubversionURL(*aslist)     # doctest: +NORMALIZE_WHITESPACE
+    SplitSubversionURL(repo='^',
+                       prefix='/',
+                       project='my.project',
+                       branch='trunk',
+                       suffix='setup.py',
+                       peg=None)
 
     For brevity, here is a little helper function for doctest-internal use:
 
@@ -495,8 +518,9 @@ def split_svn_url(url, **kwargs):
 
     >>> url1 = 'svn+ssh://svn.mycompany/repo1/my.project/trunk/setup.py'
     >>> url1_aslist = ssu_list(url1)
-    >>> url1_aslist
-    ['svn+ssh://svn.mycompany', '/repo1/', 'my.project', 'trunk', 'setup.py', None]
+    >>> url1_aslist                     # doctest: +NORMALIZE_WHITESPACE
+    ['svn+ssh://svn.mycompany', '/repo1/', 'my.project', 'trunk', 'setup.py',
+     None]
 
     Normally, this won't matter at all; we usually only use the
     'project', 'branch' and 'suffix' parts.
@@ -504,7 +528,9 @@ def split_svn_url(url, **kwargs):
     the base url:
     >>> ssu_list('svn+ssh://svn.mycompany/repo1/my.project/trunk/setup.py',
     ...          baseurl='svn+ssh://svn.mycompany/repo1')
-    ['svn+ssh://svn.mycompany/repo1', '/', 'my.project', 'trunk', 'setup.py', None]
+    ...                                 # doctest: +NORMALIZE_WHITESPACE
+    ['svn+ssh://svn.mycompany/repo1', '/', 'my.project', 'trunk', 'setup.py',
+     None]
 
     For '^/...' URLs, this 'baseurl' argument is ignored;
     other URLs are required to match this base: if it doesn't, a
